@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registrar localização</title>
+<meta name="description" content="Envie sua localização atual com um toque.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #E9EFEC;
+    --ink: #14293A;
+    --muted: #4F6472;
+    --line: #B7C6C0;
+    --field: #F8FBF9;
+    --accent: #0B6E69;
+    --accent-ink: #FFFFFF;
+    --danger: #A4262C;
+    --ok: #1F6B3A;
+    --radius: 10px;
+    --font: "Familjen Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font);
+    font-size: 1.0625rem;
+    line-height: 1.5;
+    color: var(--ink);
+    background-color: var(--paper);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900' viewBox='0 0 900 900' fill='none' stroke='%2314293A' stroke-opacity='.09' stroke-width='1.5'%3E%3Cellipse cx='640' cy='260' rx='60' ry='40'/%3E%3Cellipse cx='640' cy='260' rx='130' ry='90'/%3E%3Cellipse cx='650' cy='270' rx='210' ry='150'/%3E%3Cellipse cx='660' cy='280' rx='300' ry='215'/%3E%3Cellipse cx='670' cy='290' rx='400' ry='290'/%3E%3Cellipse cx='680' cy='300' rx='520' ry='370'/%3E%3Cellipse cx='200' cy='760' rx='90' ry='60'/%3E%3Cellipse cx='200' cy='760' rx='190' ry='130'/%3E%3Cellipse cx='210' cy='770' rx='300' ry='210'/%3E%3C/svg%3E");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    display: grid;
+    place-items: start center;
+    padding: clamp(1.25rem, 6vw, 4.5rem) 1.25rem;
+  }
+  main { width: 100%; max-width: 540px; }
+  h1 {
+    margin: 0 0 .5rem;
+    font-size: clamp(2.25rem, 8vw, 3.5rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+  }
+  .lead { margin: 0 0 2rem; color: var(--muted); max-width: 44ch; }
+
+  .panel {
+    background: var(--field);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: clamp(1.25rem, 4vw, 1.75rem);
+  }
+
+  .locate {
+    width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: .6rem;
+    padding: .95rem 1rem;
+    font: inherit; font-weight: 500;
+    color: var(--accent);
+    background: transparent;
+    border: 1.5px solid var(--accent);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background-color .15s, color .15s;
+  }
+  .locate:hover { background: rgba(11, 110, 105, .08); }
+  .locate[aria-busy="true"] { cursor: progress; }
+  .pin {
+    position: relative; width: 12px; height: 12px; border-radius: 50%;
+    background: currentColor; flex: none;
+  }
+  .locate[aria-busy="true"] .pin::after {
+    content: ""; position: absolute; inset: -6px; border-radius: 50%;
+    border: 2px solid currentColor;
+    animation: ping 1.1s ease-out infinite;
+  }
+  @keyframes ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+
+  .divider { margin: 1.25rem 0; text-align: center; color: var(--muted); font-size: .9rem; display: flex; align-items: center; gap: .75rem; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  .field { margin-bottom: 1rem; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+  label { display: block; margin-bottom: .3rem; font-weight: 500; font-size: .95rem; }
+  input {
+    width: 100%;
+    padding: .75rem .85rem;
+    font: inherit;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  input::placeholder { color: #8A9CA6; }
+  input[aria-invalid="true"] { border-color: var(--danger); }
+  .hint { margin: .3rem 0 0; font-size: .875rem; color: var(--muted); }
+  .error { margin: .3rem 0 0; font-size: .875rem; color: var(--danger); }
+
+  :focus-visible { outline: 3px solid #E0A100; outline-offset: 2px; }
+
+  .submit {
+    width: 100%; margin-top: .5rem;
+    padding: 1rem;
+    font: inherit; font-weight: 700; font-size: 1.0625rem;
+    color: var(--accent-ink); background: var(--accent);
+    border: 0; border-radius: var(--radius);
+    cursor: pointer;
+    transition: filter .15s;
+  }
+  .submit:hover { filter: brightness(1.1); }
+  .submit:disabled { opacity: .6; cursor: not-allowed; }
+
+  .status { min-height: 1.5rem; margin: 1rem 0 0; font-size: .95rem; }
+  .status[data-type="error"] { color: var(--danger); }
+  .status[data-type="info"] { color: var(--muted); }
+
+  .done h2 { margin: 0 0 .5rem; font-size: 1.75rem; letter-spacing: -0.02em; color: var(--ok); }
+  .done p { margin: 0 0 1.25rem; }
+  .done dl { margin: 0 0 1.5rem; display: grid; grid-template-columns: auto 1fr; gap: .35rem 1rem; }
+  .done dt { color: var(--muted); }
+  .done dd { margin: 0; overflow-wrap: anywhere; }
+  .link { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+
+  [hidden] { display: none !important; }
+  @media (max-width: 380px) { .row { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Registrar localização</h1>
+  <p class="lead">Toque no botão para preencher as coordenadas automaticamente e envie.</p>
+
+  <section class="panel">
+    <form id="form" novalidate>
+      <button type="button" id="locate" class="locate" aria-busy="false">
+        <span class="pin" aria-hidden="true"></span>
+        <span id="locateLabel">Usar minha localização</span>
+      </button>
+
+      <div class="divider" aria-hidden="true">ou preencha manualmente</div>
+
+      <div class="field">
+        <label for="local">Local</label>
+        <input id="local" name="local" type="text" autocomplete="off" placeholder="Ex.: Av. Paulista, São Paulo" required>
+        <p class="error" id="localErr" hidden></p>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="lat">Latitude</label>
+          <input id="lat" name="lat" type="text" inputmode="decimal" autocomplete="off" placeholder="-23.561414" required>
+          <p class="error" id="latErr" hidden></p>
+        </div>
+        <div class="field">
+          <label for="lng">Longitude</label>
+          <input id="lng" name="lng" type="text" inputmode="decimal" autocomplete="off" placeholder="-46.655881" required>
+          <p class="error" id="lngErr" hidden></p>
+        </div>
+      </div>
+
+      <button type="submit" id="submit" class="submit">Enviar localização</button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <div class="done" id="done" hidden tabindex="-1">
+      <h2>Localização enviada</h2>
+      <p>Recebemos estes dados:</p>
+      <dl>
+        <dt>Local</dt><dd id="doneLocal"></dd>
+        <dt>Latitude</dt><dd id="doneLat"></dd>
+        <dt>Longitude</dt><dd id="doneLng"></dd>
+      </dl>
+      <button type="button" id="again" class="link">Enviar outra localização</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  // ===== Configuração do Google Forms =====
+  const FORM_ID = "1FAIpQLSe0h6UHcTbQyeyhWQ4kz4FQSS_8LaqKYQACqHZXtt9D2OOn2A";
+  const ENTRY = {
+    local: "entry.471810395",
+    lat:   "entry.1489760718",
+    lng:   "entry.127969069"
+  };
+  const ACTION = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`;
+
+  const $ = (id) => document.getElementById(id);
+  const form = $("form"), done = $("done");
+  const fields = { local: $("local"), lat: $("lat"), lng: $("lng") };
+  const statusEl = $("status"), locateBtn = $("locate"), submitBtn = $("submit");
+
+  let autoFilledLocal = false; // true quando o campo Local veio do geocoding
+
+  const setStatus = (msg, type = "info") => {
+    statusEl.textContent = msg;
+    statusEl.dataset.type = type;
+  };
+
+  const setError = (key, msg) => {
+    const el = $(key + "Err");
+    el.hidden = !msg;
+    el.textContent = msg || "";
+    fields[key].setAttribute("aria-invalid", msg ? "true" : "false");
+    if (msg) fields[key].setAttribute("aria-describedby", key + "Err");
+    else fields[key].removeAttribute("aria-describedby");
+  };
+
+  const toNumber = (v) => Number(String(v).trim().replace(",", "."));
+
+  function validate() {
+    let first = null;
+    const fail = (key, msg) => { setError(key, msg); first = first || fields[key]; };
+
+    if (!fields.local.value.trim()) fail("local", "Informe o local."); else setError("local");
+
+    const lat = toNumber(fields.lat.value);
+    if (!fields.lat.value.trim() || Number.isNaN(lat)) fail("lat", "Informe a latitude.");
+    else if (lat < -90 || lat > 90) fail("lat", "A latitude vai de -90 a 90.");
+    else setError("lat");
+
+    const lng = toNumber(fields.lng.value);
+    if (!fields.lng.value.trim() || Number.isNaN(lng)) fail("lng", "Informe a longitude.");
+    else if (lng < -180 || lng > 180) fail("lng", "A longitude vai de -180 a 180.");
+    else setError("lng");
+
+    if (first) { first.focus(); return null; }
+    return { local: fields.local.value.trim(), lat: String(lat), lng: String(lng) };
+  }
+
+  // ===== Geolocalização =====
+  function geoErrorMessage(err) {
+    switch (err.code) {
+      case 1: return "Permissão negada. Libere a localização nas configurações do navegador ou digite as coordenadas.";
+      case 2: return "Não foi possível obter sua posição. Tente novamente ou digite as coordenadas.";
+      case 3: return "A busca demorou demais. Tente novamente em um local com melhor sinal.";
+      default: return "Não foi possível obter sua localização.";
+    }
+  }
+
+  function setLocating(on) {
+    locateBtn.setAttribute("aria-busy", String(on));
+    locateBtn.disabled = on;
+    $("locateLabel").textContent = on ? "Buscando localização…" : "Usar minha localização";
+  }
+
+  async function reverseGeocode(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&accept-language=pt-BR&lat=${lat}&lon=${lng}`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error("geocode");
+    const data = await res.json();
+    const a = data.address || {};
+    const street = a.road || a.pedestrian || a.neighbourhood || a.suburb;
+    const city = a.city || a.town || a.village || a.municipality;
+    const short = [street, city].filter(Boolean).join(", ");
+    return short || data.display_name || "";
+  }
+
+  function locate() {
+    if (!("geolocation" in navigator)) {
+      setStatus("Seu navegador não permite obter a localização. Digite as coordenadas.", "error");
+      return;
+    }
+    setStatus("");
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      fields.lat.value = lat; fields.lng.value = lng;
+      setError("lat"); setError("lng");
+
+      const canFillLocal = !fields.local.value.trim() || autoFilledLocal;
+      if (canFillLocal) {
+        setStatus("Coordenadas obtidas. Buscando o nome do local…");
+        try {
+          const name = await reverseGeocode(lat, lng);
+          if (name) { fields.local.value = name; autoFilledLocal = true; setError("local"); }
+          setStatus(name ? "Localização preenchida. Confira e envie." : "Coordenadas obtidas. Informe o nome do local.");
+        } catch {
+          setStatus("Coordenadas obtidas. Não achamos o nome do local, informe manualmente.");
+        }
+      } else {
+        setStatus("Coordenadas atualizadas. Confira e envie.");
+      }
+      setLocating(false);
+      if (!fields.local.value.trim()) fields.local.focus();
+    }, (err) => {
+      setLocating(false);
+      setStatus(geoErrorMessage(err), "error");
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  }
+
+  // ===== Envio ao Google Forms =====
+  async function send(values) {
+    const body = new URLSearchParams();
+    body.append(ENTRY.local, values.local);
+    body.append(ENTRY.lat, values.lat);
+    body.append(ENTRY.lng, values.lng);
+    // no-cors: o Google não devolve CORS, então a resposta é opaca.
+    // Se não houver erro de rede, o envio foi aceito.
+    await fetch(ACTION, { method: "POST", mode: "no-cors", body });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const values = validate();
+    if (!values) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Enviando…";
+    setStatus("");
+    try {
+      await send(values);
+      $("doneLocal").textContent = values.local;
+      $("doneLat").textContent = values.lat;
+      $("doneLng").textContent = values.lng;
+      form.hidden = true;
+      done.hidden = false;
+      done.focus();
+    } catch {
+      setStatus("Não foi possível enviar. Verifique sua conexão e tente novamente.", "error");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Enviar localização";
+    }
+  });
+
+  $("again").addEventListener("click", () => {
+    form.reset();
+    autoFilledLocal = false;
+    ["local", "lat", "lng"].forEach((k) => setError(k));
+    setStatus("");
+    done.hidden = true;
+    form.hidden = false;
+    locateBtn.focus();
+  });
+
+  fields.local.addEventListener("input", () => { autoFilledLocal = false; });
+  locateBtn.addEventListener("click", locate);
+})();
+</script>
+</body>
+</html>
